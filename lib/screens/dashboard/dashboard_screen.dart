@@ -6,6 +6,7 @@ import '../../models/expense.dart';
 import '../../models/category.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
+import '../export/export_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -29,6 +30,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('Analytics'),
         elevation: 0,
         centerTitle: true,
+        automaticallyImplyLeading: true,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: StreamBuilder<List<Expense>>(
         stream: _databaseService.getExpensesByMonth(user!.uid, DateTime.now()),
@@ -85,7 +93,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 // Category List
                 _buildCategoryList(categoryTotals, totalSpending),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
+
+                // Export PDF Button
+                _buildExportButton(),
+                const SizedBox(height: 100),
               ],
             ),
           );
@@ -131,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -171,95 +183,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
   Widget _buildTotalSpendingCard(double total, List<Expense> expenses) {
-  // Calculate daily average (total / days that have expenses)
-  final daysWithExpenses = expenses.map((e) => e.date.day).toSet().length;
-  final dailyAvg = daysWithExpenses > 0 ? total / daysWithExpenses : 0.0;
+    // Calculate daily average (total / days that have expenses)
+    final daysWithExpenses = expenses.map((e) => e.date.day).toSet().length;
+    final dailyAvg = daysWithExpenses > 0 ? total / daysWithExpenses : 0.0;
 
-  // Find highest single expense
-  final highest = expenses.isNotEmpty
-      ? expenses.map((e) => e.amount).reduce((a, b) => a > b ? a : b)
-      : 0.0;
+    // Find highest single expense
+    final highest = expenses.isNotEmpty
+        ? expenses.map((e) => e.amount).reduce((a, b) => a > b ? a : b)
+        : 0.0;
 
-  final count = expenses.length;
+    final count = expenses.length;
 
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(24),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppTheme.primaryColor, Color(0xFF1B5E20)],
-      ),
-      borderRadius: BorderRadius.circular(20),
-      boxShadow: [
-        BoxShadow(
-          color: AppTheme.primaryColor.withOpacity(0.3),
-          blurRadius: 20,
-          offset: const Offset(0, 10),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.primaryColor, Color(0xFF1B5E20)],
         ),
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              DateFormat('MMMM yyyy').format(DateTime.now()),
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 14,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '$count ${count == 1 ? 'expense' : 'expenses'}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                DateFormat('MMMM yyyy').format(DateTime.now()),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 14,
                 ),
               ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$count ${count == 1 ? 'expense' : 'expenses'}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Total Spending',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Total Spending',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'RM ${total.toStringAsFixed(2)}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
+          const SizedBox(height: 4),
+          Text(
+            'RM ${_formatWithCommas(total)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            _buildMiniStat('Daily Avg', 'RM ${dailyAvg.toStringAsFixed(2)}'),
-            const SizedBox(width: 24),
-            _buildMiniStat('Highest', 'RM ${highest.toStringAsFixed(2)}'),
-          ],
-        ),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildMiniStat('Daily Avg', 'RM ${_formatWithCommas(dailyAvg)}'),
+              const SizedBox(width: 24),
+              _buildMiniStat('Highest', 'RM ${_formatWithCommas(highest)}'),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildMiniStat(String label, String value) {
@@ -269,7 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withValues(alpha: 0.7),
             fontSize: 12,
           ),
         ),
@@ -333,7 +345,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -346,7 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             drawVerticalLine: false,
             horizontalInterval: maxY / 4,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha: 0.2),
               strokeWidth: 1,
             ),
           ),
@@ -416,8 +428,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppTheme.primaryColor.withOpacity(0.3),
-                    AppTheme.primaryColor.withOpacity(0.0),
+                    AppTheme.primaryColor.withValues(alpha: 0.3),
+                    AppTheme.primaryColor.withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -429,46 +441,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPieChart(Map<String, double> categoryTotals, double total) {
-  final sections = categoryTotals.entries.map((entry) {
-    final category = ExpenseCategory.getByName(entry.key);
-    final percentage = (entry.value / total) * 100;
+    final sections = categoryTotals.entries.map((entry) {
+      final category = ExpenseCategory.getByName(entry.key);
+      final percentage = (entry.value / total) * 100;
 
-    return PieChartSectionData(
-      value: entry.value,
-      title: '${percentage.toStringAsFixed(0)}%',
-      color: category.color,
-      radius: 60,
-      titleStyle: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
+      return PieChartSectionData(
+        value: entry.value,
+        title: '${percentage.toStringAsFixed(0)}%',
+        color: category.color,
+        radius: 60,
+        titleStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      );
+    }).toList();
+
+    return Container(
+      height: 200,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: PieChart(
+        PieChartData(
+          sections: sections,
+          centerSpaceRadius: 35,
+          sectionsSpace: 2,
+        ),
       ),
     );
-  }).toList();
-
-  return Container(
-    height: 200,
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: PieChart(
-      PieChartData(
-        sections: sections,
-        centerSpaceRadius: 35,
-        sectionsSpace: 2,
-      ),
-    ),
-  );
-}
+  }
 
   Widget _buildCategoryList(Map<String, double> categoryTotals, double total) {
     final sortedCategories = categoryTotals.entries.toList()
@@ -481,7 +493,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -499,7 +511,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: category.color.withOpacity(0.1),
+                    color: category.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -537,7 +549,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'RM ${entry.value.toStringAsFixed(2)}',
+                      'RM ${_formatWithCommas(entry.value)}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
@@ -558,3 +570,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
+  // Export PDF Button
+  Widget _buildExportButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: AppTheme.blueGradient,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.accentBlue.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ExportScreen()),
+        ),
+        icon: const Icon(Icons.picture_as_pdf, size: 22),
+        label: const Text(
+          'Export PDF Report',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Format number with commas
+  String _formatWithCommas(double value) {
+    String result = value.toStringAsFixed(2);
+    List<String> parts = result.split('.');
+    String integerPart = parts[0];
+    String decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
+
+    String formatted = '';
+    int count = 0;
+    for (int i = integerPart.length - 1; i >= 0; i--) {
+      if (count > 0 && count % 3 == 0) {
+        formatted = ',$formatted';
+      }
+      formatted = integerPart[i] + formatted;
+      count++;
+    }
+
+    return '$formatted$decimalPart';
+  }
+}

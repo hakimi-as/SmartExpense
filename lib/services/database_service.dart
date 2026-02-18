@@ -85,4 +85,23 @@ class DatabaseService {
     }
     return total;
   }
+  // Get expenses by date range
+Stream<List<Expense>> getExpensesByDateRange(
+  String userId,
+  DateTime startDate,
+  DateTime endDate,
+) {
+  return _firestore
+      .collection('expenses')
+      .where('userId', isEqualTo: userId)
+      .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+      .where('date', isLessThanOrEqualTo: Timestamp.fromDate(
+        DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59),
+      ))
+      .orderBy('date', descending: true)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => Expense.fromMap(doc.id, doc.data()))
+          .toList());
+}
 }

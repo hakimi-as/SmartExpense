@@ -3,6 +3,7 @@ import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/currency_service.dart';
 import '../auth/login_screen.dart';
+import '../export/export_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback? onCurrencyChanged;
@@ -120,35 +121,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildSectionTitle('Preferences'),
                 const SizedBox(height: 12),
                 _buildCard(
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    children: [
+                      // Currency Option
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.currency_exchange,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        title: const Text(
+                          'Currency',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          '${currency.flag} ${currency.name} (${currency.symbol})',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.chevron_right, color: Colors.grey),
+                        ),
+                        onTap: _changeCurrency,
                       ),
-                      child: const Icon(
-                        Icons.currency_exchange,
-                        color: AppTheme.primaryColor,
+                      Divider(height: 1, color: Colors.grey[200]),
+                      
+                      // Export Report Option
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentBlue.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.picture_as_pdf,
+                            color: AppTheme.accentBlue,
+                          ),
+                        ),
+                        title: const Text(
+                          'Export Report',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          'Generate PDF expense report',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.chevron_right, color: Colors.grey),
+                        ),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ExportScreen()),
+                        ),
                       ),
-                    ),
-                    title: const Text(
-                      'Currency',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: Text(
-                      '${currency.flag} ${currency.name} (${currency.symbol})',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.chevron_right, color: Colors.grey),
-                    ),
-                    onTap: _changeCurrency,
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),

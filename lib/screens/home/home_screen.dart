@@ -7,6 +7,9 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/currency_service.dart';
 import '../expenses/add_expense_screen.dart';
+import '../export/export_screen.dart';
+import '../expenses/scan_receipt_screen.dart';
+import '../dashboard/dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -337,7 +340,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             label: 'Scan',
                             color: AppTheme.accentOrange,
                             gradient: AppTheme.orangeGradient,
-                            onTap: () => Navigator.pushNamed(context, '/scan'),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           _buildQuickAction(
@@ -345,7 +351,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             label: 'Stats',
                             color: AppTheme.accentPurple,
                             gradient: AppTheme.purpleGradient,
-                            onTap: () {},
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           _buildQuickAction(
@@ -353,7 +362,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             label: 'Export',
                             color: AppTheme.accentBlue,
                             gradient: AppTheme.blueGradient,
-                            onTap: () {},
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const ExportScreen()),
+                            ),
                           ),
                         ],
                       ),
