@@ -18,14 +18,15 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final _authService = AuthService();
   final _databaseService = DatabaseService();
-  int _selectedPeriod = 1; // 0: Week, 1: Month, 2: Year
+  int _selectedPeriod = 1;
 
   @override
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Analytics'),
         elevation: 0,
@@ -50,10 +51,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final expenses = snapshot.data ?? [];
 
           if (expenses.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(isDark);
           }
 
-          // Calculate totals by category
           final categoryTotals = <String, double>{};
           double totalSpending = 0;
 
@@ -63,7 +63,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             totalSpending += expense.amount;
           }
 
-          // Calculate daily spending for line chart
           final dailySpending = _calculateDailySpending(expenses);
 
           return SingleChildScrollView(
@@ -71,31 +70,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Period Selector
-                _buildPeriodSelector(),
+                _buildPeriodSelector(isDark),
                 const SizedBox(height: 24),
-
-                // Total Spending Card
-                _buildTotalSpendingCard(totalSpending, expenses),
+                _buildTotalSpendingCard(totalSpending, expenses, isDark),
                 const SizedBox(height: 24),
-
-                // Spending Trend Chart
-                _buildSectionTitle('Spending Trend'),
+                _buildSectionTitle('Spending Trend', isDark),
                 const SizedBox(height: 12),
-                _buildLineChart(dailySpending),
+                _buildLineChart(dailySpending, isDark),
                 const SizedBox(height: 24),
-
-                // Category Breakdown
-                _buildSectionTitle('By Category'),
+                _buildSectionTitle('By Category', isDark),
                 const SizedBox(height: 12),
-                _buildPieChart(categoryTotals, totalSpending),
+                _buildPieChart(categoryTotals, totalSpending, isDark),
                 const SizedBox(height: 24),
-
-                // Category List
-                _buildCategoryList(categoryTotals, totalSpending),
+                _buildCategoryList(categoryTotals, totalSpending, isDark),
                 const SizedBox(height: 24),
-
-                // Export PDF Button
                 _buildExportButton(),
                 const SizedBox(height: 100),
               ],
@@ -106,7 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -122,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
             ),
           ),
           const SizedBox(height: 8),
@@ -135,15 +123,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildPeriodSelector() {
+  Widget _buildPeriodSelector(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -151,15 +139,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Row(
         children: [
-          _buildPeriodButton('Week', 0),
-          _buildPeriodButton('Month', 1),
-          _buildPeriodButton('Year', 2),
+          _buildPeriodButton('Week', 0, isDark),
+          _buildPeriodButton('Month', 1, isDark),
+          _buildPeriodButton('Year', 2, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodButton(String label, int index) {
+  Widget _buildPeriodButton(String label, int index, bool isDark) {
     final isSelected = _selectedPeriod == index;
     return Expanded(
       child: GestureDetector(
@@ -176,7 +164,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : Colors.grey[600],
+              color: isSelected
+                  ? Colors.white
+                  : (isDark ? Colors.grey[400] : Colors.grey[600]),
             ),
           ),
         ),
@@ -184,16 +174,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTotalSpendingCard(double total, List<Expense> expenses) {
-    // Calculate daily average (total / days that have expenses)
+  Widget _buildTotalSpendingCard(double total, List<Expense> expenses, bool isDark) {
     final daysWithExpenses = expenses.map((e) => e.date.day).toSet().length;
     final dailyAvg = daysWithExpenses > 0 ? total / daysWithExpenses : 0.0;
-
-    // Find highest single expense
     final highest = expenses.isNotEmpty
         ? expenses.map((e) => e.amount).reduce((a, b) => a > b ? a : b)
         : 0.0;
-
     final count = expenses.length;
 
     return Container(
@@ -298,12 +284,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDark) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
+        color: isDark ? Colors.white : AppTheme.textPrimary,
       ),
     );
   }
@@ -312,12 +299,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final dailySpending = <int, double>{};
     final now = DateTime.now();
 
-    // Initialize all days of current month
     for (int i = 1; i <= now.day; i++) {
       dailySpending[i] = 0;
     }
 
-    // Sum expenses by day
     for (var expense in expenses) {
       if (expense.date.month == now.month && expense.date.year == now.year) {
         dailySpending[expense.date.day] =
@@ -328,7 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return dailySpending;
   }
 
-  Widget _buildLineChart(Map<int, double> dailySpending) {
+  Widget _buildLineChart(Map<int, double> dailySpending, bool isDark) {
     final spots = dailySpending.entries
         .map((e) => FlSpot(e.key.toDouble(), e.value))
         .toList();
@@ -341,11 +326,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       height: 200,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -358,7 +343,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             drawVerticalLine: false,
             horizontalInterval: maxY / 4,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: isDark
+                  ? Colors.grey.withValues(alpha: 0.2)
+                  : Colors.grey.withValues(alpha: 0.2),
               strokeWidth: 1,
             ),
           ),
@@ -371,7 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return Text(
                     value.toInt().toString(),
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
                       fontSize: 10,
                     ),
                   );
@@ -388,7 +375,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Text(
                       value.toInt().toString(),
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
                         fontSize: 10,
                       ),
                     ),
@@ -416,7 +403,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 getDotPainter: (spot, percent, barData, index) {
                   return FlDotCirclePainter(
                     radius: 4,
-                    color: Colors.white,
+                    color: isDark ? AppTheme.darkCard : Colors.white,
                     strokeWidth: 2,
                     strokeColor: AppTheme.primaryColor,
                   );
@@ -440,7 +427,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildPieChart(Map<String, double> categoryTotals, double total) {
+  Widget _buildPieChart(Map<String, double> categoryTotals, double total, bool isDark) {
     final sections = categoryTotals.entries.map((entry) {
       final category = ExpenseCategory.getByName(entry.key);
       final percentage = (entry.value / total) * 100;
@@ -462,11 +449,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       height: 200,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -482,18 +469,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildCategoryList(Map<String, double> categoryTotals, double total) {
+  Widget _buildCategoryList(Map<String, double> categoryTotals, double total, bool isDark) {
     final sortedCategories = categoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -527,8 +514,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Text(
                         entry.key,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -536,7 +524,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: percentage / 100,
-                          backgroundColor: Colors.grey[200],
+                          backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
                           valueColor: AlwaysStoppedAnimation<Color>(category.color),
                           minHeight: 6,
                         ),
@@ -550,15 +538,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Text(
                       'RM ${_formatWithCommas(entry.value)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : AppTheme.textPrimary,
                       ),
                     ),
                     Text(
                       '${percentage.toStringAsFixed(1)}%',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[500] : Colors.grey[600],
                       ),
                     ),
                   ],
@@ -571,7 +560,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Export PDF Button
   Widget _buildExportButton() {
     return Container(
       width: double.infinity,
@@ -612,7 +600,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Format number with commas
   String _formatWithCommas(double value) {
     String result = value.toStringAsFixed(2);
     List<String> parts = result.split('.');

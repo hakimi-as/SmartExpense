@@ -136,6 +136,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
   }
 
   Future<void> _selectDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -144,9 +146,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: AppTheme.primaryColor,
+              onPrimary: Colors.white,
+              surface: isDark ? AppTheme.darkCard : Colors.white,
+              onSurface: isDark ? Colors.white : Colors.black,
             ),
+            dialogBackgroundColor: isDark ? AppTheme.darkCard : Colors.white,
           ),
           child: child!,
         );
@@ -158,15 +164,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
   }
 
   void _showCurrencyPicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkCard : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           children: [
@@ -184,18 +192,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
             ),
             
             // Title
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'Select Currency',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
             ),
             
-            const Divider(),
+            Divider(color: isDark ? Colors.grey[800] : Colors.grey[200]),
             
             // Currency List
             Expanded(
@@ -212,7 +221,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                            : Colors.grey[100],
+                            : (isDark ? Colors.grey[800] : Colors.grey[100]),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -226,12 +235,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                       currency.name,
                       style: TextStyle(
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isDark ? Colors.white : Colors.black,
                       ),
                     ),
                     subtitle: Text(
                       '${currency.code} (${currency.symbol})',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
                       ),
                     ),
                     trailing: isSelected
@@ -260,6 +270,91 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
         ),
       ),
     );
+  }
+
+  // Delete expense method
+  Future<void> _deleteExpense() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline, color: AppTheme.expenseRed),
+            const SizedBox(width: 12),
+            Text(
+              'Delete Expense',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete this expense? This action cannot be undone.',
+          style: TextStyle(color: isDark ? Colors.grey[300] : Colors.grey[700]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.expenseRed,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && widget.expense?.id != null) {
+      setState(() => _isLoading = true);
+      try {
+        await _databaseService.deleteExpense(widget.expense!.id!);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('Expense deleted'),
+                ],
+              ),
+              backgroundColor: AppTheme.expenseRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: AppTheme.expenseRed,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _saveExpense() async {
@@ -348,9 +443,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
   @override
   Widget build(BuildContext context) {
     final currency = CurrencyService.getCurrency(_selectedCurrency);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.backgroundColor,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: CustomScrollView(
@@ -389,7 +485,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                            const SizedBox(width: 48), // Balance the back button
+                            // Delete button in app bar (only when editing)
+                            if (_isEditing)
+                              IconButton(
+                                onPressed: _deleteExpense,
+                                icon: const Icon(Icons.delete_outline, color: Colors.white),
+                              )
+                            else
+                              const SizedBox(width: 48),
                           ],
                         ),
                       ),
@@ -512,11 +615,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                     children: [
                       // Title Field
                       _buildCard(
+                        isDark: isDark,
                         child: TextFormField(
                           controller: _titleController,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black),
                           decoration: InputDecoration(
                             labelText: 'Title',
+                            labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                             hintText: 'e.g., Lunch at McDonalds',
+                            hintStyle: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[400]),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(12),
                               padding: const EdgeInsets.all(8),
@@ -553,16 +660,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
                       // Category Selection
                       _buildCard(
+                        isDark: isDark,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                               child: Text(
                                 'Category',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 16,
+                                  color: isDark ? Colors.white : AppTheme.textPrimary,
                                 ),
                               ),
                             ),
@@ -628,7 +737,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                                                   : FontWeight.normal,
                                               color: isSelected
                                                   ? category.color
-                                                  : Colors.grey[600],
+                                                  : (isDark ? Colors.grey[400] : Colors.grey[600]),
                                             ),
                                             textAlign: TextAlign.center,
                                             maxLines: 1,
@@ -649,6 +758,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
                       // Date Selection
                       _buildCard(
+                        isDark: isDark,
                         child: ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(10),
@@ -662,30 +772,30 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                               size: 20,
                             ),
                           ),
-                          title: const Text(
+                          title: Text(
                             'Date',
                             style: TextStyle(
-                              color: Colors.grey,
+                              color: isDark ? Colors.grey[400] : Colors.grey,
                               fontSize: 13,
                             ),
                           ),
                           subtitle: Text(
                             DateFormat('EEEE, MMM d, yyyy').format(_selectedDate),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: isDark ? Colors.white : AppTheme.textPrimary,
                               fontSize: 15,
                             ),
                           ),
                           trailing: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.grey[100],
+                              color: isDark ? Colors.grey[800] : Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.chevron_right,
-                              color: Colors.grey,
+                              color: isDark ? Colors.grey[400] : Colors.grey,
                             ),
                           ),
                           onTap: _selectDate,
@@ -695,12 +805,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
 
                       // Notes Field
                       _buildCard(
+                        isDark: isDark,
                         child: TextFormField(
                           controller: _notesController,
                           maxLines: 3,
+                          style: TextStyle(color: isDark ? Colors.white : Colors.black),
                           decoration: InputDecoration(
                             labelText: 'Notes (optional)',
+                            labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                             hintText: 'Add any additional details...',
+                            hintStyle: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[400]),
                             prefixIcon: Container(
                               margin: const EdgeInsets.only(left: 12, right: 12, top: 12),
                               padding: const EdgeInsets.all(8),
@@ -773,6 +887,33 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
                                 ),
                         ),
                       ),
+
+                      // Delete Button (only show when editing)
+                      if (_isEditing) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 56,
+                          child: OutlinedButton.icon(
+                            onPressed: _isLoading ? null : _deleteExpense,
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text(
+                              'Delete Expense',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.expenseRed,
+                              side: const BorderSide(color: AppTheme.expenseRed, width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -785,14 +926,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen>
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required Widget child, required bool isDark}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),

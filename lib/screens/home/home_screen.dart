@@ -7,9 +7,14 @@ import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/currency_service.dart';
 import '../expenses/add_expense_screen.dart';
+import '../expenses/all_expenses_screen.dart';
 import '../export/export_screen.dart';
 import '../expenses/scan_receipt_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../models/budget.dart';
+import '../../services/budget_service.dart';
+import '../../widgets/budget_progress_widget.dart';
+import '../budget/budget_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,7 +27,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final _authService = AuthService();
   final _databaseService = DatabaseService();
   final _currencyService = CurrencyService();
-  
+  final _budgetService = BudgetService();
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -44,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       begin: const Offset(0, 0.1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOut));
-    
+
     _animationController.forward();
     _loadCurrencyData();
   }
@@ -60,10 +66,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   double _convertAmount(double amount, String fromCurrency) {
     if (fromCurrency == _preferredCurrency) return amount;
-    
+
     final toMyrRate = _exchangeRates[fromCurrency] ?? 1.0;
     final fromMyrRate = _exchangeRates[_preferredCurrency] ?? 1.0;
-    
+
     if (fromCurrency == 'MYR') {
       return amount * fromMyrRate;
     } else {
@@ -72,17 +78,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-  // Format number with thousand separators
   String _formatWithCommas(double value) {
-    // Handle currencies with no decimal places (like JPY, IDR)
     int decimals = (_preferredCurrency == 'JPY' || _preferredCurrency == 'IDR') ? 0 : 2;
-    
+
     String result = value.toStringAsFixed(decimals);
     List<String> parts = result.split('.');
     String integerPart = parts[0];
     String decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
-    
-    // Add commas to integer part
+
     String formatted = '';
     int count = 0;
     for (int i = integerPart.length - 1; i >= 0; i--) {
@@ -92,19 +95,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       formatted = integerPart[i] + formatted;
       count++;
     }
-    
+
     return '$formatted$decimalPart';
   }
 
-  // Format with specific currency (for original amounts)
   String _formatWithCommasForCurrency(double value, String currencyCode) {
     int decimals = (currencyCode == 'JPY' || currencyCode == 'IDR') ? 0 : 2;
-    
+
     String result = value.toStringAsFixed(decimals);
     List<String> parts = result.split('.');
     String integerPart = parts[0];
     String decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
-    
+
     String formatted = '';
     int count = 0;
     for (int i = integerPart.length - 1; i >= 0; i--) {
@@ -114,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       formatted = integerPart[i] + formatted;
       count++;
     }
-    
+
     return '$formatted$decimalPart';
   }
 
@@ -136,9 +138,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final user = _authService.currentUser;
     final firstName = user?.displayName?.split(' ').first ?? 'User';
     final currency = CurrencyService.getCurrency(_preferredCurrency);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.backgroundColor,
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
@@ -187,16 +190,38 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   ),
                                 ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Icon(
-                                  Icons.notifications_outlined,
-                                  color: Colors.white,
-                                ),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const AllExpensesScreen()),
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: const Icon(
+                                        Icons.search,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: const Icon(
+                                      Icons.notifications_outlined,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -314,11 +339,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Quick Actions',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -347,28 +373,89 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                           const SizedBox(width: 12),
                           _buildQuickAction(
-                            icon: Icons.pie_chart_outline,
-                            label: 'Stats',
+                            icon: Icons.account_balance_wallet_outlined,
+                            label: 'Budget',
                             color: AppTheme.accentPurple,
                             gradient: AppTheme.purpleGradient,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildQuickAction(
+                            icon: Icons.pie_chart_outline,
+                            label: 'Stats',
+                            color: AppTheme.accentBlue,
+                            gradient: AppTheme.blueGradient,
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(builder: (_) => const DashboardScreen()),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          _buildQuickAction(
-                            icon: Icons.download_outlined,
-                            label: 'Export',
-                            color: AppTheme.accentBlue,
-                            gradient: AppTheme.blueGradient,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const ExportScreen()),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Budget Progress Section
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Budget',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppTheme.textPrimary,
                             ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                            ),
+                            child: const Text('Manage'),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      StreamBuilder<List<Budget>>(
+                        stream: _budgetService.getBudgets(user.uid),
+                        builder: (context, budgetSnapshot) {
+                          return StreamBuilder<List<Expense>>(
+                            stream: _databaseService.getExpensesByMonth(user.uid, DateTime.now()),
+                            builder: (context, expenseSnapshot) {
+                              final budgets = budgetSnapshot.data ?? [];
+                              final expenses = expenseSnapshot.data ?? [];
+                              
+                              final statuses = budgets
+                                  .map((b) => _budgetService.calculateBudgetStatus(b, expenses))
+                                  .toList();
+                              
+                              // Sort by percentage descending
+                              statuses.sort((a, b) => b.percentage.compareTo(a.percentage));
+                              
+                              return BudgetProgressWidget(
+                                budgetStatuses: statuses,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -381,15 +468,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Recent Transactions',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppTheme.textPrimary,
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AllExpensesScreen()),
+                        ),
                         child: const Text('See All'),
                       ),
                     ],
@@ -437,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -470,6 +561,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               category: category,
                               convertedAmount: convertedAmount,
                               currency: currency,
+                              isDark: isDark,
                             ),
                           );
                         },
@@ -533,6 +625,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     required ExpenseCategory category,
     required double convertedAmount,
     required Currency currency,
+    required bool isDark,
   }) {
     final showOriginal = expense.currency != _preferredCurrency;
     final originalCurrency = CurrencyService.getCurrency(expense.currency);
@@ -547,11 +640,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppTheme.darkCard : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -559,7 +652,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         child: Row(
           children: [
-            // Category Icon
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -574,16 +666,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
             const SizedBox(width: 16),
 
-            // Title & Category
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     expense.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
+                      color: isDark ? Colors.white : AppTheme.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -613,7 +705,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Text(
                         DateFormat('MMM d').format(expense.date),
                         style: TextStyle(
-                          color: Colors.grey[400],
+                          color: isDark ? Colors.grey[500] : Colors.grey[400],
                           fontSize: 12,
                         ),
                       ),
@@ -623,7 +715,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ),
 
-            // Amount
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -640,7 +731,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   Text(
                     '${originalCurrency.symbol}${_formatWithCommasForCurrency(expense.amount, expense.currency)}',
                     style: TextStyle(
-                      color: Colors.grey[400],
+                      color: isDark ? Colors.grey[500] : Colors.grey[400],
                       fontSize: 11,
                     ),
                   ),

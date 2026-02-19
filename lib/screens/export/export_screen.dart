@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import '../../config/theme.dart';
-import '../../models/expense.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/currency_service.dart';
@@ -68,6 +67,8 @@ class _ExportScreenState extends State<ExportScreen> {
   }
 
   Future<void> _selectCustomDateRange() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2020),
@@ -76,9 +77,13 @@ class _ExportScreenState extends State<ExportScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: AppTheme.primaryColor,
+              onPrimary: Colors.white,
+              surface: isDark ? AppTheme.darkCard : Colors.white,
+              onSurface: isDark ? Colors.white : Colors.black,
             ),
+            dialogBackgroundColor: isDark ? AppTheme.darkCard : Colors.white,
           ),
           child: child!,
         );
@@ -217,10 +222,13 @@ class _ExportScreenState extends State<ExportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Export Report'),
+        backgroundColor: isDark ? AppTheme.darkSurface : null,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -245,12 +253,13 @@ class _ExportScreenState extends State<ExportScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
+              Center(
                 child: Text(
                   'Generate PDF Report',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppTheme.textPrimary,
                   ),
                 ),
               ),
@@ -259,7 +268,7 @@ class _ExportScreenState extends State<ExportScreen> {
                 child: Text(
                   'Export your expenses as a professional PDF report',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
                     fontSize: 14,
                   ),
                   textAlign: TextAlign.center,
@@ -268,26 +277,28 @@ class _ExportScreenState extends State<ExportScreen> {
               const SizedBox(height: 32),
 
               // Period Selection
-              const Text(
+              Text(
                 'Select Period',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : AppTheme.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
               _buildCard(
+                isDark: isDark,
                 child: Column(
                   children: [
-                    _buildPeriodOption('This Month', Icons.calendar_today),
-                    const Divider(height: 1),
-                    _buildPeriodOption('Last Month', Icons.calendar_month),
-                    const Divider(height: 1),
-                    _buildPeriodOption('Last 3 Months', Icons.date_range),
-                    const Divider(height: 1),
-                    _buildPeriodOption('This Year', Icons.calendar_view_month),
-                    const Divider(height: 1),
-                    _buildPeriodOption('Custom', Icons.edit_calendar),
+                    _buildPeriodOption('This Month', Icons.calendar_today, isDark),
+                    Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[200]),
+                    _buildPeriodOption('Last Month', Icons.calendar_month, isDark),
+                    Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[200]),
+                    _buildPeriodOption('Last 3 Months', Icons.date_range, isDark),
+                    Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[200]),
+                    _buildPeriodOption('This Year', Icons.calendar_view_month, isDark),
+                    Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[200]),
+                    _buildPeriodOption('Custom', Icons.edit_calendar, isDark),
                   ],
                 ),
               ),
@@ -295,6 +306,7 @@ class _ExportScreenState extends State<ExportScreen> {
 
               // Selected Date Range Display
               _buildCard(
+                isDark: isDark,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -315,19 +327,20 @@ class _ExportScreenState extends State<ExportScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Date Range',
                               style: TextStyle(
-                                color: Colors.grey,
+                                color: isDark ? Colors.grey[400] : Colors.grey,
                                 fontSize: 12,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '${DateFormat('MMM d, yyyy').format(_startDate)} - ${DateFormat('MMM d, yyyy').format(_endDate)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
+                                color: isDark ? Colors.white : AppTheme.textPrimary,
                               ),
                             ),
                           ],
@@ -345,24 +358,26 @@ class _ExportScreenState extends State<ExportScreen> {
               const SizedBox(height: 32),
 
               // Report Contents Preview
-              const Text(
+              Text(
                 'Report Includes',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : AppTheme.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
               _buildCard(
+                isDark: isDark,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _buildReportItem(Icons.summarize, 'Summary', 'Total spending, count & daily average'),
+                      _buildReportItem(Icons.summarize, 'Summary', 'Total spending, count & daily average', isDark),
                       const SizedBox(height: 12),
-                      _buildReportItem(Icons.pie_chart, 'Category Breakdown', 'Spending by category with percentages'),
+                      _buildReportItem(Icons.pie_chart, 'Category Breakdown', 'Spending by category with percentages', isDark),
                       const SizedBox(height: 12),
-                      _buildReportItem(Icons.list_alt, 'Transaction List', 'All expenses with details'),
+                      _buildReportItem(Icons.list_alt, 'Transaction List', 'All expenses with details', isDark),
                     ],
                   ),
                 ),
@@ -407,16 +422,23 @@ class _ExportScreenState extends State<ExportScreen> {
               // Loading indicator
               if (_isLoading) ...[
                 const SizedBox(height: 24),
-                const Center(
+                Center(
                   child: Column(
                     children: [
-                      CircularProgressIndicator(color: AppTheme.primaryColor),
-                      SizedBox(height: 12),
-                      Text('Generating report...'),
+                      const CircularProgressIndicator(color: AppTheme.primaryColor),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Generating report...',
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
+              
+              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -424,14 +446,14 @@ class _ExportScreenState extends State<ExportScreen> {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required Widget child, required bool isDark}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -441,18 +463,20 @@ class _ExportScreenState extends State<ExportScreen> {
     );
   }
 
-  Widget _buildPeriodOption(String period, IconData icon) {
+  Widget _buildPeriodOption(String period, IconData icon, bool isDark) {
     final isSelected = _selectedPeriod == period;
     return ListTile(
       leading: Icon(
         icon,
-        color: isSelected ? AppTheme.primaryColor : Colors.grey,
+        color: isSelected ? AppTheme.primaryColor : (isDark ? Colors.grey[400] : Colors.grey),
       ),
       title: Text(
         period,
         style: TextStyle(
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          color: isSelected ? AppTheme.primaryColor : null,
+          color: isSelected
+              ? AppTheme.primaryColor
+              : (isDark ? Colors.white : AppTheme.textPrimary),
         ),
       ),
       trailing: isSelected
@@ -467,7 +491,7 @@ class _ExportScreenState extends State<ExportScreen> {
     );
   }
 
-  Widget _buildReportItem(IconData icon, String title, String subtitle) {
+  Widget _buildReportItem(IconData icon, String title, String subtitle, bool isDark) {
     return Row(
       children: [
         Container(
@@ -485,12 +509,15 @@ class _ExportScreenState extends State<ExportScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : AppTheme.textPrimary,
+                ),
               ),
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: isDark ? Colors.grey[500] : Colors.grey[600],
                   fontSize: 12,
                 ),
               ),

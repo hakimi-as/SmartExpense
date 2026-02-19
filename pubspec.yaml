@@ -34,6 +34,27 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/
+
+  # App Icon Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#00C853"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  min_sdk_android: 21
+
+# Splash Screen Configuration  
+flutter_native_splash:
+  color: "#00C853"
+  image: "assets/icon/splash_logo.png"
+  android_12:
+    color: "#00C853"
+    image: "assets/icon/splash_logo.png"

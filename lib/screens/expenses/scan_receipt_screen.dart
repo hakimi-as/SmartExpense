@@ -94,15 +94,17 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
   }
 
   void _showResultBottomSheet() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkCard : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -136,11 +138,12 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'Receipt Scanned!',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black,
                   ),
                 ),
               ],
@@ -154,12 +157,14 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                   ? 'RM ${_ocrResult!.amount!.toStringAsFixed(2)}'
                   : 'Not detected',
               _ocrResult?.amount != null,
+              isDark,
             ),
             const SizedBox(height: 12),
             _buildExtractedDataRow(
               'Merchant',
               _ocrResult?.merchant ?? 'Not detected',
               _ocrResult?.merchant != null,
+              isDark,
             ),
             const SizedBox(height: 12),
             _buildExtractedDataRow(
@@ -168,6 +173,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                   ? '${_ocrResult!.date!.day}/${_ocrResult!.date!.month}/${_ocrResult!.date!.year}'
                   : 'Not detected',
               _ocrResult?.date != null,
+              isDark,
             ),
             const SizedBox(height: 24),
 
@@ -178,6 +184,8 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? Colors.white : Colors.black,
+                      side: BorderSide(color: isDark ? Colors.grey[600]! : Colors.grey[300]!),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -221,7 +229,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
     );
   }
 
-  Widget _buildExtractedDataRow(String label, String value, bool detected) {
+  Widget _buildExtractedDataRow(String label, String value, bool detected, bool isDark) {
     return Row(
       children: [
         Icon(
@@ -233,7 +241,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
         Text(
           '$label:',
           style: TextStyle(
-            color: Colors.grey[600],
+            color: isDark ? Colors.grey[400] : Colors.grey[600],
           ),
         ),
         const SizedBox(width: 8),
@@ -242,7 +250,9 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
             value,
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: detected ? Colors.black : Colors.grey,
+              color: detected
+                  ? (isDark ? Colors.white : Colors.black)
+                  : Colors.grey,
             ),
           ),
         ),
@@ -252,10 +262,13 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Scan Receipt'),
+        backgroundColor: isDark ? AppTheme.darkSurface : null,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -268,29 +281,29 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
               Container(
                 height: 300,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppTheme.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: _isProcessing
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            CircularProgressIndicator(
+                            const CircularProgressIndicator(
                               color: AppTheme.primaryColor,
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             Text(
                               'Processing receipt...',
                               style: TextStyle(
-                                color: Colors.grey,
+                                color: isDark ? Colors.grey[400] : Colors.grey,
                               ),
                             ),
                           ],
@@ -319,13 +332,13 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                               Icon(
                                 Icons.receipt_long,
                                 size: 80,
-                                color: Colors.grey[300],
+                                color: isDark ? Colors.grey[700] : Colors.grey[300],
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 'No receipt selected',
                                 style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
                                   fontSize: 16,
                                 ),
                               ),
@@ -333,7 +346,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                               Text(
                                 'Take a photo or select from gallery',
                                 style: TextStyle(
-                                  color: Colors.grey[400],
+                                  color: isDark ? Colors.grey[600] : Colors.grey[400],
                                   fontSize: 14,
                                 ),
                               ),
@@ -347,21 +360,21 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: Colors.orange.withValues(alpha: isDark ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: Colors.orange.withValues(alpha: 0.3),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.orange),
-                      SizedBox(width: 12),
+                      const Icon(Icons.info_outline, color: Colors.orange),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'OCR scanning works best on mobile devices. For full functionality, please use the Android or iOS app.',
                           style: TextStyle(
-                            color: Colors.orange,
+                            color: isDark ? Colors.orange[300] : Colors.orange[800],
                             fontSize: 13,
                           ),
                         ),
@@ -397,11 +410,11 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppTheme.darkCard : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -410,27 +423,28 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.lightbulb_outline,
                           color: AppTheme.primaryColor,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
                           'Tips for better scanning',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: isDark ? Colors.white : AppTheme.textPrimary,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _buildTipRow('Ensure good lighting'),
-                    _buildTipRow('Keep the receipt flat'),
-                    _buildTipRow('Capture the entire receipt'),
-                    _buildTipRow('Make sure text is readable'),
+                    _buildTipRow('Ensure good lighting', isDark),
+                    _buildTipRow('Keep the receipt flat', isDark),
+                    _buildTipRow('Capture the entire receipt', isDark),
+                    _buildTipRow('Make sure text is readable', isDark),
                   ],
                 ),
               ),
@@ -441,17 +455,18 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: isDark ? AppTheme.darkCard : Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Extracted Text:',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
+                          color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -459,7 +474,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
                         _ocrResult!.rawText,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[700],
+                          color: isDark ? Colors.grey[400] : Colors.grey[700],
                         ),
                       ),
                     ],
@@ -510,7 +525,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
     );
   }
 
-  Widget _buildTipRow(String text) {
+  Widget _buildTipRow(String text, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -524,7 +539,7 @@ class _ScanReceiptScreenState extends State<ScanReceiptScreen> {
           Text(
             text,
             style: TextStyle(
-              color: Colors.grey[600],
+              color: isDark ? Colors.grey[300] : Colors.grey[600],
             ),
           ),
         ],

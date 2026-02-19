@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/currency_service.dart';
+import '../../services/theme_service.dart';
 import '../auth/login_screen.dart';
 import '../export/export_screen.dart';
 
@@ -49,7 +51,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _currencyService.setPreferredCurrency(selected);
       setState(() => _selectedCurrency = selected);
 
-      // Notify parent to refresh
       widget.onCurrencyChanged?.call();
 
       if (mounted) {
@@ -75,9 +76,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
     final currency = CurrencyService.getCurrency(_selectedCurrency);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Settings'),
         elevation: 0,
@@ -111,8 +113,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     subtitle: Text(
                       user?.email ?? '',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Appearance Section
+                _buildSectionTitle('Appearance'),
+                const SizedBox(height: 12),
+                _buildCard(
+                  child: Consumer<ThemeService>(
+                    builder: (context, themeService, child) {
+                      return ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentPurple.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            themeService.isDarkMode
+                                ? Icons.dark_mode
+                                : Icons.light_mode,
+                            color: AppTheme.accentPurple,
+                          ),
+                        ),
+                        title: const Text(
+                          'Dark Mode',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          themeService.isDarkMode ? 'On' : 'Off',
+                          style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                        ),
+                        trailing: Switch(
+                          value: themeService.isDarkMode,
+                          onChanged: (_) => themeService.toggleTheme(),
+                          activeColor: AppTheme.primaryColor,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -142,20 +183,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         subtitle: Text(
                           '${currency.flag} ${currency.name} (${currency.symbol})',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                         ),
                         trailing: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: isDark ? Colors.grey[800] : Colors.grey[100],
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.chevron_right, color: Colors.grey),
+                          child: Icon(Icons.chevron_right, color: Colors.grey[600]),
                         ),
                         onTap: _changeCurrency,
                       ),
-                      Divider(height: 1, color: Colors.grey[200]),
-                      
+                      Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[200]),
+
                       // Export Report Option
                       ListTile(
                         leading: Container(
@@ -175,15 +216,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         subtitle: Text(
                           'Generate PDF expense report',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                         ),
                         trailing: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: isDark ? Colors.grey[800] : Colors.grey[100],
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.chevron_right, color: Colors.grey),
+                          child: Icon(Icons.chevron_right, color: Colors.grey[600]),
                         ),
                         onTap: () => Navigator.push(
                           context,
@@ -216,10 +257,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: const Text('App Version'),
                         subtitle: Text(
                           '1.0.0',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                         ),
                       ),
-                      Divider(height: 1, color: Colors.grey[200]),
+                      Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[200]),
                       ListTile(
                         leading: Container(
                           padding: const EdgeInsets.all(10),
@@ -235,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: const Text('Developer'),
                         subtitle: Text(
                           'Hakimi - SmartExpense',
-                          style: TextStyle(color: Colors.grey[600]),
+                          style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                         ),
                       ),
                     ],
@@ -267,7 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () => _showLogoutDialog(),
                   ),
                 ),
-                const SizedBox(height: 100), // Space for bottom nav
+                const SizedBox(height: 100),
               ],
             ),
     );
@@ -289,13 +330,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildCard({required Widget child}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -306,9 +348,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLogoutDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -361,11 +405,13 @@ class _CurrencyPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkCard : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -394,7 +440,7 @@ class _CurrencyPickerSheet extends StatelessWidget {
             ),
           ),
 
-          Divider(height: 1, color: Colors.grey[200]),
+          Divider(height: 1, color: isDark ? Colors.grey[800] : Colors.grey[200]),
 
           // Currency List
           Expanded(
@@ -411,7 +457,7 @@ class _CurrencyPickerSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                          : Colors.grey[100],
+                          : (isDark ? Colors.grey[800] : Colors.grey[100]),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
@@ -427,7 +473,10 @@ class _CurrencyPickerSheet extends StatelessWidget {
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
-                  subtitle: Text('${currency.code} (${currency.symbol})'),
+                  subtitle: Text(
+                    '${currency.code} (${currency.symbol})',
+                    style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  ),
                   trailing: isSelected
                       ? Container(
                           padding: const EdgeInsets.all(4),

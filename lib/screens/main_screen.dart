@@ -16,7 +16,6 @@ class MainScreen extends StatefulWidget {
 class MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // Key to refresh HomeScreen when currency changes
   Key _homeKey = UniqueKey();
 
   void refreshHome() {
@@ -26,19 +25,20 @@ class MainScreenState extends State<MainScreen> {
   }
 
   void _showAddOptions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? AppTheme.darkCard : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle bar
             Container(
               width: 40,
               height: 4,
@@ -57,7 +57,6 @@ class MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Manual Entry
             _buildOptionTile(
               icon: Icons.edit,
               title: 'Manual Entry',
@@ -73,7 +72,6 @@ class MainScreenState extends State<MainScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Scan Receipt
             _buildOptionTile(
               icon: Icons.camera_alt,
               title: 'Scan Receipt',
@@ -101,15 +99,17 @@ class MainScreenState extends State<MainScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: color.withValues(alpha: isDark ? 0.2 : 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: color.withValues(alpha: 0.2),
+            color: color.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -138,7 +138,7 @@ class MainScreenState extends State<MainScreen> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                       fontSize: 13,
                     ),
                   ),
@@ -157,6 +157,8 @@ class MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -175,10 +177,10 @@ class MainScreenState extends State<MainScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? AppTheme.darkSurface : Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),

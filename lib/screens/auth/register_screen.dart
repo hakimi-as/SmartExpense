@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
-import '../home/home_screen.dart';
+import '../main_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -48,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const MainScreen()),
           (route) => false,
         );
       }
@@ -93,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -117,7 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Start tracking your expenses today',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -130,7 +130,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -302,7 +302,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Text(
                         'Already have an account? ',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
+
                         ),
                       ),
                       TextButton(
