@@ -38,7 +38,7 @@ A modern expense tracking app built with Flutter & Firebase.
 
 ## 📥 Download
 
-[⬇️ Download APK](https://github.com/YOUR_USERNAME/smartexpense/releases/download/v1.0.0/app-release.apk)
+[⬇️ Download APK](https://github.com/hakimi-as/SmartExpense/releases/download/v1.0.0/SmartExpense-v1.0.0.apk)
 
 ## 🚀 Installation
 
