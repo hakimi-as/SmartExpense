@@ -5,6 +5,7 @@
 -keep class io.flutter.view.** { *; }
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
+-keep class io.flutter.embedding.** { *; }
 
 # Firebase
 -keep class com.google.firebase.** { *; }
@@ -15,6 +16,13 @@
 # Google Sign In
 -keep class com.google.android.gms.auth.** { *; }
 -keep class com.google.android.gms.common.** { *; }
+
+# Google Play Core (Fix for R8 missing classes)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
+-keep class com.google.android.play.core.splitcompat.** { *; }
+-keep class com.google.android.play.core.splitinstall.** { *; }
+-keep class com.google.android.play.core.tasks.** { *; }
 
 # ML Kit (OCR)
 -keep class com.google.mlkit.** { *; }
@@ -52,3 +60,9 @@
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**
 -dontwarn org.openjsse.**
+
+# Keep R8 from removing necessary classes
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes InnerClasses
+-keepattributes EnclosingMethod

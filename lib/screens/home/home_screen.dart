@@ -230,14 +230,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                         );
                                       },
                                     ),
-                                    const SizedBox(width: 12),
-                                    _buildHeaderButton(
-                                      icon: Icons.notifications_outlined,
-                                      onTap: () {
-                                        HapticService.lightTap();
-                                        // TODO: Notifications
-                                      },
-                                    ),
                                   ],
                                 ),
                               ],

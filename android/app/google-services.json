@@ -51,6 +51,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "97858231380-krtfkckfb96ng071q9okpih6a842ou0r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hakimi.smartexpense",
+            "certificate_hash": "ac9b5f54ca52c825aa0b9b656a313e2d12391fc0"
+          }
+        },
+        {
           "client_id": "97858231380-g476977o103glr4v6sdudc7s5oc0i3io.apps.googleusercontent.com",
           "client_type": 3
         }
