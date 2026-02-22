@@ -54,18 +54,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       widget.onCurrencyChanged?.call();
 
       if (mounted) {
+        final currency = CurrencyService.getCurrency(selected);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
-                Text('Currency changed to ${CurrencyService.getCurrency(selected).name}'),
+                Expanded(
+                  child: Text(
+                    'Currency: ${currency.code} (${currency.symbol})',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             backgroundColor: AppTheme.incomeGreen,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -114,6 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: Text(
                       user?.email ?? '',
                       style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -182,8 +190,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         subtitle: Text(
-                          '${currency.flag} ${currency.name} (${currency.symbol})',
+                          '${currency.flag} ${currency.code} (${currency.symbol})',
                           style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         trailing: Container(
                           padding: const EdgeInsets.all(8),
@@ -356,14 +365,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.logout, color: AppTheme.expenseRed),
-            SizedBox(width: 12),
-            Text('Logout'),
+            const Icon(Icons.logout, color: AppTheme.expenseRed),
+            const SizedBox(width: 12),
+            Text(
+              'Logout',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            ),
           ],
         ),
-        content: const Text('Are you sure you want to logout?'),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: TextStyle(color: isDark ? Colors.grey[300] : Colors.grey[700]),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -429,13 +444,14 @@ class _CurrencyPickerSheet extends StatelessWidget {
           ),
 
           // Title
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Text(
               'Select Currency',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
           ),
@@ -471,7 +487,9 @@ class _CurrencyPickerSheet extends StatelessWidget {
                     currency.name,
                     style: TextStyle(
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
                     '${currency.code} (${currency.symbol})',

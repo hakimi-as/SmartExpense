@@ -12,7 +12,20 @@
           "package_name": "com.example.smartexpense"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "97858231380-jmqbb9hsivfn126ekrpkg9lc5dbolskv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.smartexpense",
+            "certificate_hash": "2478d1970430c3f24cf3b0b0e9175fcdbd9bea97"
+          }
+        },
+        {
+          "client_id": "97858231380-g476977o103glr4v6sdudc7s5oc0i3io.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB697hZW-77T3H_4LhtNHxTF_nE9ooTC04"
@@ -20,7 +33,41 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "97858231380-g476977o103glr4v6sdudc7s5oc0i3io.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97858231380:android:39d4abc05a7e88548b21c1",
+        "android_client_info": {
+          "package_name": "com.hakimi.smartexpense"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "97858231380-g476977o103glr4v6sdudc7s5oc0i3io.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB697hZW-77T3H_4LhtNHxTF_nE9ooTC04"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "97858231380-g476977o103glr4v6sdudc7s5oc0i3io.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

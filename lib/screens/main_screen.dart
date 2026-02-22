@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../services/haptic_service.dart';
 import 'home/home_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'settings/settings_screen.dart';
@@ -25,6 +26,7 @@ class MainScreenState extends State<MainScreen> {
   }
 
   void _showAddOptions() {
+    HapticService.mediumTap();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     showModalBottomSheet(
@@ -48,11 +50,12 @@ class MainScreenState extends State<MainScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Add Expense',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
               ),
             ),
             const SizedBox(height: 24),
@@ -63,6 +66,7 @@ class MainScreenState extends State<MainScreen> {
               subtitle: 'Enter expense details manually',
               color: AppTheme.primaryColor,
               onTap: () {
+                HapticService.lightTap();
                 Navigator.pop(context);
                 Navigator.push(
                   context,
@@ -78,6 +82,7 @@ class MainScreenState extends State<MainScreen> {
               subtitle: 'Auto-fill from receipt photo',
               color: Colors.orange,
               onTap: () {
+                HapticService.lightTap();
                 Navigator.pop(context);
                 Navigator.push(
                   context,
@@ -103,7 +108,8 @@ class MainScreenState extends State<MainScreen> {
     
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: color.withValues(alpha: isDark ? 0.2 : 0.1),
@@ -129,9 +135,10 @@ class MainScreenState extends State<MainScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: isDark ? Colors.white : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -207,28 +214,41 @@ class MainScreenState extends State<MainScreen> {
     final isSelected = _currentIndex == index;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _currentIndex = index),
+        onTap: () {
+          if (_currentIndex != index) {
+            HapticService.lightTap();
+            setState(() => _currentIndex = index);
+          }
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected ? AppTheme.primaryColor : Colors.grey,
-                size: 24,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  color: isSelected ? AppTheme.primaryColor : Colors.grey,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    isSelected ? activeIcon : icon,
+                    key: ValueKey(isSelected),
+                    color: isSelected ? AppTheme.primaryColor : Colors.grey,
+                    size: 24,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected ? AppTheme.primaryColor : Colors.grey,
+                  ),
+                  child: Text(label),
+                ),
+              ],
+            ),
           ),
         ),
       ),

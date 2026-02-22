@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../models/expense.dart';
@@ -6,6 +7,7 @@ import '../../models/category.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../services/currency_service.dart';
+import '../../services/haptic_service.dart';
 import '../expenses/add_expense_screen.dart';
 import '../expenses/all_expenses_screen.dart';
 import '../export/export_screen.dart';
@@ -35,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   String _preferredCurrency = 'MYR';
   Map<String, double> _exchangeRates = {};
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -58,10 +61,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Future<void> _loadCurrencyData() async {
     final currency = await _currencyService.getPreferredCurrency();
     final rates = await _currencyService.getExchangeRates('MYR');
-    setState(() {
-      _preferredCurrency = currency;
-      _exchangeRates = rates;
-    });
+    if (mounted) {
+      setState(() {
+        _preferredCurrency = currency;
+        _exchangeRates = rates;
+      });
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    HapticService.mediumTap();
+    setState(() => _isRefreshing = true);
+    
+    await _loadCurrencyData();
+    
+    // Small delay for visual feedback
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    if (mounted) {
+      setState(() => _isRefreshing = false);
+      HapticService.success();
+    }
   }
 
   double _convertAmount(double amount, String fromCurrency) {
@@ -146,433 +166,511 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         opacity: _fadeAnimation,
         child: SlideTransition(
           position: _slideAnimation,
-          child: CustomScrollView(
-            slivers: [
-              // Beautiful Header
-              SliverToBoxAdapter(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(32),
-                      bottomRight: Radius.circular(32),
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: AppTheme.primaryColor,
+            backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+            displacement: 60,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              slivers: [
+                // Beautiful Header
+                SliverToBoxAdapter(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(32),
+                        bottomRight: Radius.circular(32),
+                      ),
                     ),
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Top Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _getGreeting(),
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.8),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    firstName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => const AllExpensesScreen()),
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: const Icon(
-                                        Icons.search,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: const Icon(
-                                      Icons.notifications_outlined,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Balance Card
-                          StreamBuilder<List<Expense>>(
-                            stream: _databaseService.getExpensesByMonth(
-                              user!.uid,
-                              DateTime.now(),
-                            ),
-                            builder: (context, snapshot) {
-                              double totalSpending = 0;
-                              if (snapshot.hasData) {
-                                for (var expense in snapshot.data!) {
-                                  totalSpending += _convertAmount(
-                                    expense.amount,
-                                    expense.currency,
-                                  );
-                                }
-                              }
-
-                              return Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                child: Column(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Top Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Total Spending',
-                                          style: TextStyle(
-                                            color: Colors.white.withValues(alpha: 0.8),
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.2),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Text(
-                                            DateFormat('MMMM').format(DateTime.now()),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          currency.symbol,
-                                          style: TextStyle(
-                                            color: Colors.white.withValues(alpha: 0.9),
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          _formatWithCommas(totalSpending),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 40,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (_preferredCurrency != 'MYR') ...[
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        '≈ Original amounts converted from multiple currencies',
-                                        style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.6),
-                                          fontSize: 11,
-                                        ),
+                                    Text(
+                                      _getGreeting(),
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                        fontSize: 14,
                                       ),
-                                    ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      firstName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Quick Actions
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quick Actions',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          _buildQuickAction(
-                            icon: Icons.add_circle_outline,
-                            label: 'Add',
-                            color: AppTheme.primaryColor,
-                            gradient: AppTheme.primaryGradient,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _buildQuickAction(
-                            icon: Icons.camera_alt_outlined,
-                            label: 'Scan',
-                            color: AppTheme.accentOrange,
-                            gradient: AppTheme.orangeGradient,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _buildQuickAction(
-                            icon: Icons.account_balance_wallet_outlined,
-                            label: 'Budget',
-                            color: AppTheme.accentPurple,
-                            gradient: AppTheme.purpleGradient,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const BudgetScreen()),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          _buildQuickAction(
-                            icon: Icons.pie_chart_outline,
-                            label: 'Stats',
-                            color: AppTheme.accentBlue,
-                            gradient: AppTheme.blueGradient,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const DashboardScreen()),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Budget Progress Section
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Budget',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : AppTheme.textPrimary,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const BudgetScreen()),
-                            ),
-                            child: const Text('Manage'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      StreamBuilder<List<Budget>>(
-                        stream: _budgetService.getBudgets(user.uid),
-                        builder: (context, budgetSnapshot) {
-                          return StreamBuilder<List<Expense>>(
-                            stream: _databaseService.getExpensesByMonth(user.uid, DateTime.now()),
-                            builder: (context, expenseSnapshot) {
-                              final budgets = budgetSnapshot.data ?? [];
-                              final expenses = expenseSnapshot.data ?? [];
-                              
-                              final statuses = budgets
-                                  .map((b) => _budgetService.calculateBudgetStatus(b, expenses))
-                                  .toList();
-                              
-                              // Sort by percentage descending
-                              statuses.sort((a, b) => b.percentage.compareTo(a.percentage));
-                              
-                              return BudgetProgressWidget(
-                                budgetStatuses: statuses,
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                                Row(
+                                  children: [
+                                    _buildHeaderButton(
+                                      icon: Icons.search,
+                                      onTap: () {
+                                        HapticService.lightTap();
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => const AllExpensesScreen()),
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 12),
+                                    _buildHeaderButton(
+                                      icon: Icons.notifications_outlined,
+                                      onTap: () {
+                                        HapticService.lightTap();
+                                        // TODO: Notifications
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Recent Transactions Header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Recent Transactions',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : AppTheme.textPrimary,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AllExpensesScreen()),
-                        ),
-                        child: const Text('See All'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Expense List
-              StreamBuilder<List<Expense>>(
-                stream: _databaseService.getExpenses(user.uid),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SliverFillRemaining(
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final expenses = snapshot.data ?? [];
-
-                  if (expenses.isEmpty) {
-                    return SliverFillRemaining(
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.receipt_long_outlined,
-                                size: 48,
-                                color: AppTheme.primaryColor.withValues(alpha: 0.5),
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No expenses yet',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                            const SizedBox(height: 24),
+
+                            // Balance Card
+                            StreamBuilder<List<Expense>>(
+                              stream: _databaseService.getExpensesByMonth(
+                                user!.uid,
+                                DateTime.now(),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Tap + to add your first expense',
-                              style: TextStyle(color: Colors.grey[400]),
+                              builder: (context, snapshot) {
+                                double totalSpending = 0;
+                                if (snapshot.hasData) {
+                                  for (var expense in snapshot.data!) {
+                                    totalSpending += _convertAmount(
+                                      expense.amount,
+                                      expense.currency,
+                                    );
+                                  }
+                                }
+
+                                return AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Container(
+                                    key: ValueKey(totalSpending),
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'Total Spending',
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(alpha: 0.8),
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withValues(alpha: 0.2),
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                DateFormat('MMMM').format(DateTime.now()),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              currency.symbol,
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(alpha: 0.9),
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            TweenAnimationBuilder<double>(
+                                              tween: Tween(begin: 0, end: totalSpending),
+                                              duration: const Duration(milliseconds: 800),
+                                              curve: Curves.easeOutCubic,
+                                              builder: (context, value, child) {
+                                                return Text(
+                                                  _formatWithCommas(value),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 40,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        if (_preferredCurrency != 'MYR') ...[
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '≈ Original amounts converted from multiple currencies',
+                                            style: TextStyle(
+                                              color: Colors.white.withValues(alpha: 0.6),
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
                       ),
-                    );
-                  }
+                    ),
+                  ),
+                ),
 
-                  return SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final expense = expenses[index];
-                          final category = ExpenseCategory.getByName(expense.category);
-                          final convertedAmount = _convertAmount(
-                            expense.amount,
-                            expense.currency,
-                          );
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildExpenseCard(
-                              expense: expense,
-                              category: category,
-                              convertedAmount: convertedAmount,
-                              currency: currency,
-                              isDark: isDark,
+                // Quick Actions
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quick Actions',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            _buildQuickAction(
+                              icon: Icons.add_circle_outline,
+                              label: 'Add',
+                              color: AppTheme.primaryColor,
+                              gradient: AppTheme.primaryGradient,
+                              onTap: () {
+                                HapticService.mediumTap();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
+                                );
+                              },
                             ),
-                          );
-                        },
-                        childCount: expenses.length > 10 ? 10 : expenses.length,
+                            const SizedBox(width: 12),
+                            _buildQuickAction(
+                              icon: Icons.camera_alt_outlined,
+                              label: 'Scan',
+                              color: AppTheme.accentOrange,
+                              gradient: AppTheme.orangeGradient,
+                              onTap: () {
+                                HapticService.mediumTap();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const ScanReceiptScreen()),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 12),
+                            _buildQuickAction(
+                              icon: Icons.account_balance_wallet_outlined,
+                              label: 'Budget',
+                              color: AppTheme.accentPurple,
+                              gradient: AppTheme.purpleGradient,
+                              onTap: () {
+                                HapticService.mediumTap();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 12),
+                            _buildQuickAction(
+                              icon: Icons.pie_chart_outline,
+                              label: 'Stats',
+                              color: AppTheme.accentBlue,
+                              gradient: AppTheme.blueGradient,
+                              onTap: () {
+                                HapticService.mediumTap();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Budget Progress Section
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Budget',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : AppTheme.textPrimary,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                HapticService.lightTap();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                                );
+                              },
+                              child: const Text('Manage'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        StreamBuilder<List<Budget>>(
+                          stream: _budgetService.getBudgets(user.uid),
+                          builder: (context, budgetSnapshot) {
+                            return StreamBuilder<List<Expense>>(
+                              stream: _databaseService.getExpensesByMonth(user.uid, DateTime.now()),
+                              builder: (context, expenseSnapshot) {
+                                final budgets = budgetSnapshot.data ?? [];
+                                final expenses = expenseSnapshot.data ?? [];
+                                
+                                final statuses = budgets
+                                    .map((b) => _budgetService.calculateBudgetStatus(b, expenses))
+                                    .toList();
+                                
+                                // Sort by percentage descending
+                                statuses.sort((a, b) => b.percentage.compareTo(a.percentage));
+                                
+                                return BudgetProgressWidget(
+                                  budgetStatuses: statuses,
+                                  onTap: () {
+                                    HapticService.lightTap();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const BudgetScreen()),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Recent Transactions Header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Recent Transactions',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : AppTheme.textPrimary,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            HapticService.lightTap();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AllExpensesScreen()),
+                            );
+                          },
+                          child: const Text('See All'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Expense List
+StreamBuilder<List<Expense>>(
+  stream: _databaseService.getExpenses(user.uid),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: AppTheme.primaryColor,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final expenses = snapshot.data ?? [];
+
+    if (expenses.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.8, end: 1.0),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.elasticOut,
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.receipt_long_outlined,
+                        size: 48,
+                        color: AppTheme.primaryColor.withValues(alpha: 0.5),
                       ),
                     ),
                   );
                 },
               ),
+              const SizedBox(height: 16),
+              Text(
+                'No expenses yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tap + to add your first expense',
+                style: TextStyle(color: Colors.grey[400]),
+              ),
+              const SizedBox(height: 100),
             ],
           ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final expense = expenses[index];
+            final category = ExpenseCategory.getByName(expense.category);
+            final convertedAmount = _convertAmount(
+              expense.amount,
+              expense.currency,
+            );
+
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: Duration(milliseconds: 300 + (index * 50)),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildExpenseCard(
+                        expense: expense,
+                        category: category,
+                        convertedAmount: convertedAmount,
+                        currency: currency,
+                        isDark: isDark,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          childCount: expenses.length > 10 ? 10 : expenses.length,
+        ),
+      ),
+    );
+  },
+),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
         ),
       ),
     );
@@ -588,7 +686,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             gradient: gradient,
@@ -631,13 +730,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final originalCurrency = CurrencyService.getCurrency(expense.currency);
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AddExpenseScreen(expense: expense),
-        ),
-      ),
-      child: Container(
+      onTap: () {
+        HapticService.lightTap();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddExpenseScreen(expense: expense),
+          ),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark ? AppTheme.darkCard : Colors.white,
@@ -652,16 +755,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: category.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                category.icon,
-                color: category.color,
-                size: 24,
+            Hero(
+              tag: 'expense_icon_${expense.id}',
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: category.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  category.icon,
+                  color: category.color,
+                  size: 24,
+                ),
               ),
             ),
             const SizedBox(width: 16),
